@@ -1,4 +1,5 @@
-import React, {PropTypes} from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
 
 import {GraphiQL} from 'graphiql/dist/components/GraphiQL';
 import {GraphiQLToolbar} from './GraphiQLToolbar';
