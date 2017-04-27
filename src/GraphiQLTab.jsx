@@ -37,7 +37,9 @@ export class GraphiQLTab extends React.Component {
     hasClosed: PropTypes.bool.isRequired,
     onToolbar: PropTypes.func,
     onNameChange: PropTypes.func,
-    proxyUrl: PropTypes.string
+    proxyUrl: PropTypes.string,
+    schema: PropTypes.object,
+    fetcher: PropTypes.func,
   }
 
   constructor(props) {
@@ -257,7 +259,7 @@ export class GraphiQLTab extends React.Component {
           storage={tab.getState()}
           query={this.state.queryUpdate ? this.state.queryUpdate.query : undefined}
           variables={this.state.queryUpdate ? this.state.queryUpdate.variables : undefined}
-          schema={this.state.schema}
+          schema={this.props.schema || this.state.schema}
           fetcher={this.fetcher.bind(this)}
           onEditQuery={this.queryEdited.bind(this)}
           onEditVariables={this.variablesEdited.bind(this)}>
@@ -529,28 +531,37 @@ export class GraphiQLTab extends React.Component {
         headers.append(h.name, h.value))
     }
 
-    return fetch(url, {
-      method: 'post',
-      headers: headers,
-      body: JSON.stringify(params),
-      credentials: 'same-origin',
-    }).then(response => response.text())
-    .then(responseBody => {
-      try {
-        const json = JSON.parse(responseBody);
+    let fetchPromise = this.props.fetcher ?
+      this.props.fetcher(params, { url, headers}) :
+      fetch(url, {
+        method: 'post',
+        headers: headers,
+        body: JSON.stringify(params),
+        credentials: 'same-origin',
+      }).then(response => {
+        if (responce.ok) {
+          return responce.json();
+        }
+        return response.text().then(errorText => {
+          let errJson;
+          try {
+            errJson = JSON.parse(errorText);
+          } catch(e) {
+            throw errorText;
+          }
+          throw errJson;
+        })
+      });
 
-        if (this.state.appConfig.rememberUrl(this.state.config.state.url))
-          this.setState({appConfig: this.state.appConfig})
+    return fetchPromise.then(responseBody => {
+      if (this.state.appConfig.rememberUrl(this.state.config.state.url))
+        this.setState({appConfig: this.state.appConfig})
 
-        if (this.state.config.rememberQuery({query: params.query, variables: params.variables}))
-          this.setState({config: this.state.config})
+      if (this.state.config.rememberQuery({query: params.query, variables: params.variables}))
+        this.setState({config: this.state.config})
 
-
-        return json
-      } catch (error) {
-        return responseBody;
-      }
-    });
+      return responseBody;
+    }).catch(err => err && err.message || err)
   }
 
   defaultSubscriptionsClientBuilder(url, connectionParams) {
