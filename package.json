@@ -29,13 +29,17 @@
     "quickBuild": "./scripts/quickBuild.sh",
     "clean": "rm -rf dist/"
   },
+  "peerDependencies": {
+    "react": ">=15.4.2",
+    "react-dom": ">=15.4.2"
+  },
   "dependencies": {
     "bootstrap-sass": "^3.3.7",
     "brace": "^0.10.0",
     "classnames": "2.2.5",
     "lodash": "^4.17.4",
     "moment": "^2.17.1",
-    "react": "^15.4.2",
+    "graphql": "^0.6.0 || ^0.7.0 || ^0.8.0-b || ^0.9.0",
     "react-bootstrap": "^0.30.7",
     "react-dom": "^15.4.2",
     "react-dropzone": "^3.11.0",
