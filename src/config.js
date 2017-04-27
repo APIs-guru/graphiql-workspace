@@ -85,7 +85,8 @@ export class AppConfig {
         defaultWebsocketUrl = '',
         defaultQuery = '{\n  hero {\n    id\n    name\n    \n    friends {\n      name\n    }\n  }\n}',
         defaultVariables = '',
-        defaultHeaders = []
+        defaultHeaders = [],
+        defaultSavedQueries = []
       } = options
 
       this.bootstrapOptions = options;
@@ -106,7 +107,7 @@ export class AppConfig {
         maxTabHistory: 20,
         maxUrlHistory: 20,
         maxHistory: 20,
-        savedQueries: []
+        savedQueries: defaultSavedQueries
       })
 
       this.tabInfo = this.state.tabIds.map(id => new TabConfig(id,{defaultQuery, defaultVariables}))
