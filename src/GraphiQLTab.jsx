@@ -108,7 +108,6 @@ export class GraphiQLTab extends React.Component {
 
     const url = <DebouncedFormControl
       placeholder="GraphQL endpoint URL"
-      bsSize="small"
       value={tab.state.url}
       onChange={this.urlChange.bind(this)} />
 
