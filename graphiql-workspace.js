@@ -169,6 +169,10 @@ var _react = (typeof window !== "undefined" ? window['React'] : typeof global !=
 
 var _react2 = _interopRequireDefault(_react);
 
+var _propTypes = require('prop-types');
+
+var _propTypes2 = _interopRequireDefault(_propTypes);
+
 var _GraphiQL = require('graphiql/dist/components/GraphiQL');
 
 var _GraphiQLToolbar = require('./GraphiQLToolbar');
@@ -367,7 +371,6 @@ var GraphiQLTab = exports.GraphiQLTab = function (_React$Component) {
 
       var url = _react2.default.createElement(_DebouncedFormControl.DebouncedFormControl, {
         placeholder: 'GraphQL endpoint URL',
-        bsSize: 'small',
         value: tab.state.url,
         onChange: this.urlChange.bind(this) });
 
@@ -638,7 +641,7 @@ var GraphiQLTab = exports.GraphiQLTab = function (_React$Component) {
             storage: tab.getState(),
             query: this.state.queryUpdate ? this.state.queryUpdate.query : undefined,
             variables: this.state.queryUpdate ? this.state.queryUpdate.variables : undefined,
-            schema: this.state.schema,
+            schema: this.props.schema || this.state.schema,
             fetcher: this.fetcher.bind(this),
             onEditQuery: this.queryEdited.bind(this),
             onEditVariables: this.variablesEdited.bind(this) },
@@ -932,25 +935,34 @@ var GraphiQLTab = exports.GraphiQLTab = function (_React$Component) {
         });
       }
 
-      return fetch(url, {
+      var fetchPromise = this.props.fetcher ? this.props.fetcher(params, { url: url, headers: headers }) : fetch(url, {
         method: 'post',
         headers: headers,
         body: JSON.stringify(params),
         credentials: 'same-origin'
       }).then(function (response) {
-        return response.text();
-      }).then(function (responseBody) {
-        try {
-          var json = JSON.parse(responseBody);
-
-          if (_this6.state.appConfig.rememberUrl(_this6.state.config.state.url)) _this6.setState({ appConfig: _this6.state.appConfig });
-
-          if (_this6.state.config.rememberQuery({ query: params.query, variables: params.variables })) _this6.setState({ config: _this6.state.config });
-
-          return json;
-        } catch (error) {
-          return responseBody;
+        if (responce.ok) {
+          return responce.json();
         }
+        return response.text().then(function (errorText) {
+          var errJson = void 0;
+          try {
+            errJson = JSON.parse(errorText);
+          } catch (e) {
+            throw errorText;
+          }
+          throw errJson;
+        });
+      });
+
+      return fetchPromise.then(function (responseBody) {
+        if (_this6.state.appConfig.rememberUrl(_this6.state.config.state.url)) _this6.setState({ appConfig: _this6.state.appConfig });
+
+        if (_this6.state.config.rememberQuery({ query: params.query, variables: params.variables })) _this6.setState({ config: _this6.state.config });
+
+        return responseBody;
+      }).catch(function (err) {
+        return err && err.message || err;
       });
     }
   }, {
@@ -975,15 +987,17 @@ var GraphiQLTab = exports.GraphiQLTab = function (_React$Component) {
 }(_react2.default.Component);
 
 GraphiQLTab.propTypes = {
-  tab: _react.PropTypes.object.isRequired,
-  app: _react.PropTypes.object.isRequired,
-  hasClosed: _react.PropTypes.bool.isRequired,
-  onToolbar: _react.PropTypes.func,
-  onNameChange: _react.PropTypes.func,
-  proxyUrl: _react.PropTypes.string
+  tab: _propTypes2.default.object.isRequired,
+  app: _propTypes2.default.object.isRequired,
+  hasClosed: _propTypes2.default.bool.isRequired,
+  onToolbar: _propTypes2.default.func,
+  onNameChange: _propTypes2.default.func,
+  proxyUrl: _propTypes2.default.string,
+  schema: _propTypes2.default.object,
+  fetcher: _propTypes2.default.func
 };
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./DebouncedFormControl":1,"./GraphiQLSubscriptionsFetcher":2,"./GraphiQLToolbar":4,"./HeaderEditor":6,"./QuerySelectionButton":8,"./utility/introspectionQueries":11,"graphiql/dist/components/GraphiQL":189,"graphql":236,"lodash":315,"react-bootstrap/lib/Button":325,"react-bootstrap/lib/ButtonGroup":326,"react-bootstrap/lib/Checkbox":327,"react-bootstrap/lib/Col":328,"react-bootstrap/lib/ControlLabel":329,"react-bootstrap/lib/DropdownButton":331,"react-bootstrap/lib/Form":335,"react-bootstrap/lib/FormControl":336,"react-bootstrap/lib/FormGroup":339,"react-bootstrap/lib/Glyphicon":340,"react-bootstrap/lib/InputGroup":341,"react-bootstrap/lib/MenuItem":344,"react-bootstrap/lib/Table":361,"subscriptions-transport-ws":390}],4:[function(require,module,exports){
+},{"./DebouncedFormControl":1,"./GraphiQLSubscriptionsFetcher":2,"./GraphiQLToolbar":4,"./HeaderEditor":6,"./QuerySelectionButton":8,"./utility/introspectionQueries":11,"graphiql/dist/components/GraphiQL":189,"graphql":236,"lodash":315,"prop-types":323,"react-bootstrap/lib/Button":325,"react-bootstrap/lib/ButtonGroup":326,"react-bootstrap/lib/Checkbox":327,"react-bootstrap/lib/Col":328,"react-bootstrap/lib/ControlLabel":329,"react-bootstrap/lib/DropdownButton":331,"react-bootstrap/lib/Form":335,"react-bootstrap/lib/FormControl":336,"react-bootstrap/lib/FormGroup":339,"react-bootstrap/lib/Glyphicon":340,"react-bootstrap/lib/InputGroup":341,"react-bootstrap/lib/MenuItem":344,"react-bootstrap/lib/Table":361,"subscriptions-transport-ws":390}],4:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -997,6 +1011,10 @@ var _createClass = function () { function defineProperties(target, props) { for 
 var _react = (typeof window !== "undefined" ? window['React'] : typeof global !== "undefined" ? global['React'] : null);
 
 var _react2 = _interopRequireDefault(_react);
+
+var _propTypes = require('prop-types');
+
+var _propTypes2 = _interopRequireDefault(_propTypes);
 
 var _Button = require('react-bootstrap/lib/Button');
 
@@ -1206,12 +1224,12 @@ var GraphiQLToolbar = function (_React$Component) {
 
 exports.GraphiQLToolbar = GraphiQLToolbar;
 GraphiQLToolbar.propTypes = {
-  onToolbar: _react.PropTypes.func,
-  hasClosed: _react.PropTypes.bool.isRequired,
-  hirizontal: _react.PropTypes.bool
+  onToolbar: _propTypes2.default.func,
+  hasClosed: _propTypes2.default.bool.isRequired,
+  hirizontal: _propTypes2.default.bool
 };
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"react-bootstrap/lib/Button":325,"react-bootstrap/lib/Glyphicon":340,"react-bootstrap/lib/OverlayTrigger":354,"react-bootstrap/lib/Tooltip":363,"react-dropzone":370}],5:[function(require,module,exports){
+},{"prop-types":323,"react-bootstrap/lib/Button":325,"react-bootstrap/lib/Glyphicon":340,"react-bootstrap/lib/OverlayTrigger":354,"react-bootstrap/lib/Tooltip":363,"react-dropzone":370}],5:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1225,6 +1243,10 @@ var _createClass = function () { function defineProperties(target, props) { for 
 var _react = (typeof window !== "undefined" ? window['React'] : typeof global !== "undefined" ? global['React'] : null);
 
 var _react2 = _interopRequireDefault(_react);
+
+var _propTypes = require('prop-types');
+
+var _propTypes2 = _interopRequireDefault(_propTypes);
 
 var _moment = require('moment');
 
@@ -1474,12 +1496,12 @@ var GraphiQLWorkspace = exports.GraphiQLWorkspace = function (_React$Component) 
 }(_react2.default.Component);
 
 GraphiQLWorkspace.propTypes = {
-  config: _react.PropTypes.object.isRequired,
-  onToolbar: _react.PropTypes.func,
-  proxyUrl: _react.PropTypes.string
+  config: _propTypes2.default.object.isRequired,
+  onToolbar: _propTypes2.default.func,
+  proxyUrl: _propTypes2.default.string
 };
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./GraphiQLTab":3,"./config":9,"lodash":315,"moment":317,"react-bootstrap/lib/Button":325,"react-bootstrap/lib/Glyphicon":340,"react-bootstrap/lib/Tab":357,"react-bootstrap/lib/Tabs":362}],6:[function(require,module,exports){
+},{"./GraphiQLTab":3,"./config":9,"lodash":315,"moment":317,"prop-types":323,"react-bootstrap/lib/Button":325,"react-bootstrap/lib/Glyphicon":340,"react-bootstrap/lib/Tab":357,"react-bootstrap/lib/Tabs":362}],6:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1493,6 +1515,10 @@ var _createClass = function () { function defineProperties(target, props) { for 
 var _react = (typeof window !== "undefined" ? window['React'] : typeof global !== "undefined" ? global['React'] : null);
 
 var _react2 = _interopRequireDefault(_react);
+
+var _propTypes = require('prop-types');
+
+var _propTypes2 = _interopRequireDefault(_propTypes);
 
 var _Form = require('react-bootstrap/lib/Form');
 
@@ -1652,12 +1678,12 @@ var HeaderEditor = exports.HeaderEditor = function (_React$Component) {
 }(_react2.default.Component);
 
 HeaderEditor.propTypes = {
-  headerIdx: _react.PropTypes.number,
-  header: _react.PropTypes.object,
-  onFinish: _react.PropTypes.func
+  headerIdx: _propTypes2.default.number,
+  header: _propTypes2.default.object,
+  onFinish: _propTypes2.default.func
 };
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"lodash":315,"react-bootstrap/lib/Button":325,"react-bootstrap/lib/Col":328,"react-bootstrap/lib/ControlLabel":329,"react-bootstrap/lib/Form":335,"react-bootstrap/lib/FormControl":336,"react-bootstrap/lib/FormGroup":339,"react-bootstrap/lib/Modal":345}],7:[function(require,module,exports){
+},{"lodash":315,"prop-types":323,"react-bootstrap/lib/Button":325,"react-bootstrap/lib/Col":328,"react-bootstrap/lib/ControlLabel":329,"react-bootstrap/lib/Form":335,"react-bootstrap/lib/FormControl":336,"react-bootstrap/lib/FormGroup":339,"react-bootstrap/lib/Modal":345}],7:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1720,6 +1746,10 @@ var _createClass = function () { function defineProperties(target, props) { for 
 var _react = (typeof window !== "undefined" ? window['React'] : typeof global !== "undefined" ? global['React'] : null);
 
 var _react2 = _interopRequireDefault(_react);
+
+var _propTypes = require('prop-types');
+
+var _propTypes2 = _interopRequireDefault(_propTypes);
 
 var _MenuItem = require('react-bootstrap/lib/MenuItem');
 
@@ -1841,12 +1871,12 @@ var QuerySelectionButton = exports.QuerySelectionButton = function (_React$Compo
 }(_react2.default.Component);
 
 QuerySelectionButton.propTypes = {
-  name: _react.PropTypes.string.isRequired,
-  list: _react.PropTypes.array.isRequired,
-  onQuery: _react.PropTypes.func
+  name: _propTypes2.default.string.isRequired,
+  list: _propTypes2.default.array.isRequired,
+  onQuery: _propTypes2.default.func
 };
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"lodash":315,"react-bootstrap/lib/DropdownButton":331,"react-bootstrap/lib/MenuItem":344,"react-bootstrap/lib/OverlayTrigger":354,"react-bootstrap/lib/Popover":355}],9:[function(require,module,exports){
+},{"lodash":315,"prop-types":323,"react-bootstrap/lib/DropdownButton":331,"react-bootstrap/lib/MenuItem":344,"react-bootstrap/lib/OverlayTrigger":354,"react-bootstrap/lib/Popover":355}],9:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1990,7 +2020,9 @@ var AppConfig = exports.AppConfig = function () {
           _options$defaultVaria = options.defaultVariables,
           defaultVariables = _options$defaultVaria === undefined ? '' : _options$defaultVaria,
           _options$defaultHeade = options.defaultHeaders,
-          defaultHeaders = _options$defaultHeade === undefined ? [] : _options$defaultHeade;
+          defaultHeaders = _options$defaultHeade === undefined ? [] : _options$defaultHeade,
+          _options$defaultSaved = options.defaultSavedQueries,
+          defaultSavedQueries = _options$defaultSaved === undefined ? [] : _options$defaultSaved;
 
 
       this.bootstrapOptions = options;
@@ -2011,7 +2043,7 @@ var AppConfig = exports.AppConfig = function () {
         maxTabHistory: 20,
         maxUrlHistory: 20,
         maxHistory: 20,
-        savedQueries: []
+        savedQueries: defaultSavedQueries
       });
 
       this.tabInfo = this.state.tabIds.map(function (id) {
@@ -22071,7 +22103,7 @@ var ExecuteButton = exports.ExecuteButton = function (_React$Component) {
               'li',
               {
                 key: operation.name ? operation.name.value : '*',
-                className: operation === highlight && 'selected',
+                className: operation === highlight && 'selected' || null,
                 onMouseOver: function onMouseOver() {
                   return _this2.setState({ highlight: operation });
                 },
@@ -28093,14 +28125,15 @@ message, nodes, source, positions, path, originalError) {
       configurable: true
     });
   }
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 GraphQLError.prototype = Object.create(Error.prototype, {
   constructor: { value: GraphQLError },
@@ -28131,14 +28164,15 @@ function formatError(error) {
     locations: error.locations,
     path: error.path
   };
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 },{"../jsutils/invariant":238}],229:[function(require,module,exports){
 'use strict';
 
@@ -28205,14 +28239,15 @@ function locatedError(originalError, nodes, path) {
 
   var message = originalError ? originalError.message || String(originalError) : 'An unknown error occurred.';
   return new _GraphQLError.GraphQLError(message, originalError && originalError.nodes || nodes, originalError && originalError.source, originalError && originalError.positions, path, originalError);
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 },{"./GraphQLError":227}],231:[function(require,module,exports){
 'use strict';
 
@@ -28229,13 +28264,14 @@ var _GraphQLError = require('./GraphQLError');
  * Produces a GraphQLError representing a syntax error, containing useful
  * descriptive information about the syntax error's position in the source.
  */
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function syntaxError(source, position, description) {
@@ -28284,14 +28320,15 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.defaultFieldResolver = undefined;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                               * Copyright (c) 2015-present, Facebook, Inc.
-                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                               * This source code is licensed under the MIT license found in the
-                                                                                                                                                                                                                                                                               * LICENSE file in the root directory of this source tree.
-                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                               * 
-                                                                                                                                                                                                                                                                               */
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 exports.execute = execute;
 exports.responsePathAsArray = responsePathAsArray;
@@ -28386,7 +28423,9 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 /* eslint-disable no-redeclare */
 function execute(argsOrSchema, document, rootValue, contextValue, variableValues, operationName, fieldResolver) {
   // Extract arguments from object args if provided.
-  return arguments.length === 1 ? executeImpl(argsOrSchema.schema, argsOrSchema.document, argsOrSchema.rootValue, argsOrSchema.contextValue, argsOrSchema.variableValues, argsOrSchema.operationName, argsOrSchema.fieldResolver) : executeImpl(argsOrSchema, document, rootValue, contextValue, variableValues, operationName, fieldResolver);
+  var args = arguments.length === 1 ? argsOrSchema : undefined;
+  var schema = args ? args.schema : argsOrSchema;
+  return args ? executeImpl(schema, args.document, args.rootValue, args.contextValue, args.variableValues, args.operationName, args.fieldResolver) : executeImpl(schema, document, rootValue, contextValue, variableValues, operationName, fieldResolver);
 }
 
 function executeImpl(schema, document, rootValue, contextValue, variableValues, operationName, fieldResolver) {
@@ -28626,11 +28665,11 @@ function collectFields(exeContext, runtimeType, selectionSet, fields, visitedFra
         if (!shouldIncludeNode(exeContext, selection)) {
           continue;
         }
-        var name = getFieldEntryKey(selection);
-        if (!fields[name]) {
-          fields[name] = [];
+        var _name = getFieldEntryKey(selection);
+        if (!fields[_name]) {
+          fields[_name] = [];
         }
-        fields[name].push(selection);
+        fields[_name].push(selection);
         break;
       case Kind.INLINE_FRAGMENT:
         if (!shouldIncludeNode(exeContext, selection) || !doesFragmentConditionMatch(exeContext, selection, runtimeType)) {
@@ -28691,8 +28730,8 @@ function doesFragmentConditionMatch(exeContext, fragment, type) {
 }
 
 /**
- * This function transforms a JS object `ObjMap<Promise<T>>` into
- * a `Promise<ObjMap<T>>`
+ * This function transforms a JS object `{[key: string]: Promise<T>}` into
+ * a `Promise<{[key: string]: T}>`
  *
  * This is akin to bluebird's `Promise.props`, but implemented only using
  * `Promise.all` so it will work with any implementation of ES6 promises.
@@ -29149,19 +29188,19 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                               * Copyright (c) 2015-present, Facebook, Inc.
-                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                               * This source code is licensed under the MIT license found in the
-                                                                                                                                                                                                                                                                               * LICENSE file in the root directory of this source tree.
-                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                               * 
-                                                                                                                                                                                                                                                                               */
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 exports.getVariableValues = getVariableValues;
 exports.getArgumentValues = getArgumentValues;
 exports.getDirectiveValues = getDirectiveValues;
-exports.coerceValue = coerceValue;
 
 var _iterall = require('iterall');
 
@@ -29211,13 +29250,9 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * Prepares an object map of variableValues of the correct type based on the
  * provided variable definitions and arbitrary input. If the input cannot be
  * parsed to match the variable definitions, a GraphQLError will be thrown.
- *
- * Note: The returned value is a plain Object with a prototype, since it is
- * exposed to user code. Care should be taken to not pull values from the
- * Object prototype.
  */
 function getVariableValues(schema, varDefNodes, inputs) {
-  var coercedValues = {};
+  var coercedValues = Object.create(null);
   for (var i = 0; i < varDefNodes.length; i++) {
     var varDefNode = varDefNodes[i];
     var varName = varDefNode.variable.name.value;
@@ -29253,18 +29288,14 @@ function getVariableValues(schema, varDefNodes, inputs) {
 /**
  * Prepares an object map of argument values given a list of argument
  * definitions and list of argument AST nodes.
- *
- * Note: The returned value is a plain Object with a prototype, since it is
- * exposed to user code. Care should be taken to not pull values from the
- * Object prototype.
  */
 function getArgumentValues(def, node, variableValues) {
-  var coercedValues = {};
   var argDefs = def.args;
   var argNodes = node.arguments;
   if (!argDefs || !argNodes) {
-    return coercedValues;
+    return {};
   }
+  var coercedValues = Object.create(null);
   var argNodeMap = (0, _keyMap2.default)(argNodes, function (arg) {
     return arg.name.value;
   });
@@ -29282,7 +29313,7 @@ function getArgumentValues(def, node, variableValues) {
       }
     } else if (argumentNode.value.kind === Kind.VARIABLE) {
       var variableName = argumentNode.value.name.value;
-      if (variableValues && Object.prototype.hasOwnProperty.call(variableValues, variableName) && !(0, _isInvalid2.default)(variableValues[variableName])) {
+      if (variableValues && !(0, _isInvalid2.default)(variableValues[variableName])) {
         // Note: this does not check that this variable value is correct.
         // This assumes that this query has been validated and the variable
         // usage here is of the correct type.
@@ -29312,10 +29343,6 @@ function getArgumentValues(def, node, variableValues) {
  * of variable values.
  *
  * If the directive does not exist on the node, returns undefined.
- *
- * Note: The returned value is a plain Object with a prototype, since it is
- * exposed to user code. Care should be taken to not pull values from the
- * Object prototype.
  */
 function getDirectiveValues(directiveDef, node, variableValues) {
   var directiveNode = node.directives && (0, _find2.default)(node.directives, function (directive) {
@@ -29461,15 +29488,18 @@ var _execute = require('./execution/execute');
 /* eslint-disable no-redeclare */
 function graphql(argsOrSchema, source, rootValue, contextValue, variableValues, operationName, fieldResolver) {
   // Extract arguments from object args if provided.
-  return arguments.length === 1 ? graphqlImpl(argsOrSchema.schema, argsOrSchema.source, argsOrSchema.rootValue, argsOrSchema.contextValue, argsOrSchema.variableValues, argsOrSchema.operationName, argsOrSchema.fieldResolver) : graphqlImpl(argsOrSchema, source, rootValue, contextValue, variableValues, operationName, fieldResolver);
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+  var args = arguments.length === 1 ? argsOrSchema : undefined;
+  var schema = args ? args.schema : argsOrSchema;
+  return args ? graphqlImpl(schema, args.source, args.rootValue, args.contextValue, args.variableValues, args.operationName, args.fieldResolver) : graphqlImpl(schema, source, rootValue, contextValue, variableValues, operationName, fieldResolver);
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 function graphqlImpl(schema, source, rootValue, contextValue, variableValues, operationName, fieldResolver) {
   return new Promise(function (resolve) {
@@ -30253,12 +30283,6 @@ Object.defineProperty(exports, 'findBreakingChanges', {
     return _utilities.findBreakingChanges;
   }
 });
-Object.defineProperty(exports, 'findDangerousChanges', {
-  enumerable: true,
-  get: function get() {
-    return _utilities.findDangerousChanges;
-  }
-});
 Object.defineProperty(exports, 'BreakingChangeType', {
   enumerable: true,
   get: function get() {
@@ -30284,13 +30308,14 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = find;
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function find(list, predicate) {
@@ -30307,13 +30332,14 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = invariant;
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function invariant(condition, message) {
@@ -30328,13 +30354,14 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = isInvalid;
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 /**
@@ -30350,13 +30377,14 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = isNullish;
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 /**
@@ -30366,13 +30394,21 @@ function isNullish(value) {
   return value === null || value === undefined || value !== value;
 }
 },{}],241:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = keyMap;
 
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 /**
  * Creates a keyed JS object from an array, given a function to produce the keys
@@ -30401,22 +30437,23 @@ function keyMap(list, keyFn) {
   return list.reduce(function (map, item) {
     return map[keyFn(item)] = item, map;
   }, Object.create(null));
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
 },{}],242:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = keyValMap;
 
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 /**
  * Creates a keyed JS object from an array, given a function to produce the keys
@@ -30439,14 +30476,7 @@ function keyValMap(list, keyFn, valFn) {
   return list.reduce(function (map, item) {
     return map[keyFn(item)] = valFn(item), map;
   }, Object.create(null));
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
 },{}],243:[function(require,module,exports){
 'use strict';
 
@@ -30454,13 +30484,14 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = quotedOrList;
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 var MAX_LENGTH = 5;
@@ -30483,13 +30514,14 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = suggestionList;
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 /**
@@ -30672,13 +30704,14 @@ exports.Kind = Kind;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 // Name
@@ -30779,13 +30812,14 @@ function createLexer(source, options) {
     advance: advanceLexer
   };
   return lexer;
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
+} /*  /
+  /**
+   *  Copyright (c) 2015, Facebook, Inc.
+   *  All rights reserved.
    *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
+   *  This source code is licensed under the BSD-style license found in the
+   *  LICENSE file in the root directory of this source tree. An additional grant
+   *  of patent rights can be found in the PATENTS file in the same directory.
    */
 
 function advanceLexer() {
@@ -31262,13 +31296,14 @@ exports.getLocation = getLocation;
  * Takes a Source and a UTF-8 character offset, and returns the corresponding
  * line and column as a SourceLocation.
  */
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function getLocation(source, position) {
@@ -31316,13 +31351,14 @@ var _kinds = require('./kinds');
 /**
  * Configuration options to control parser behavior
  */
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function parse(source, options) {
@@ -32330,10 +32366,12 @@ var _visitor = require('./visitor');
 function print(ast) {
   return (0, _visitor.visit)(ast, { leave: printDocASTReducer });
 } /**
-   * Copyright (c) 2015-present, Facebook, Inc.
+   *  Copyright (c) 2015, Facebook, Inc.
+   *  All rights reserved.
    *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
+   *  This source code is licensed under the BSD-style license found in the
+   *  LICENSE file in the root directory of this source tree. An additional grant
+   *  of patent rights can be found in the PATENTS file in the same directory.
    */
 
 var printDocASTReducer = {
@@ -32608,14 +32646,15 @@ var _invariant2 = _interopRequireDefault(_invariant);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } } /**
-                                                                                                                                                           * Copyright (c) 2015-present, Facebook, Inc.
-                                                                                                                                                           *
-                                                                                                                                                           * This source code is licensed under the MIT license found in the
-                                                                                                                                                           * LICENSE file in the root directory of this source tree.
-                                                                                                                                                           *
-                                                                                                                                                           * 
-                                                                                                                                                           */
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 /**
  * A representation of source input to GraphQL.
@@ -32645,10 +32684,12 @@ exports.visitInParallel = visitInParallel;
 exports.visitWithTypeInfo = visitWithTypeInfo;
 exports.getVisitFn = getVisitFn;
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 var QueryDocumentKeys = exports.QueryDocumentKeys = {
@@ -33056,10 +33097,12 @@ exports.default = mapAsyncIterator;
 var _iterall = require('iterall');
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; } /**
-                                                                                                                                                                                                                   * Copyright (c) 2017-present, Facebook, Inc.
+                                                                                                                                                                                                                   * Copyright (c) 2017, Facebook, Inc.
+                                                                                                                                                                                                                   * All rights reserved.
                                                                                                                                                                                                                    *
-                                                                                                                                                                                                                   * This source code is licensed under the MIT license found in the
-                                                                                                                                                                                                                   * LICENSE file in the root directory of this source tree.
+                                                                                                                                                                                                                   * This source code is licensed under the BSD-style license found in the
+                                                                                                                                                                                                                   * LICENSE file in the root directory of this source tree. An additional grant
+                                                                                                                                                                                                                   * of patent rights can be found in the PATENTS file in the same directory.
                                                                                                                                                                                                                    *
                                                                                                                                                                                                                    * 
                                                                                                                                                                                                                    */
@@ -33068,7 +33111,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
  * Given an AsyncIterable and a callback function, return an AsyncIterator
  * which produces values mapped via calling the callback function.
  */
-function mapAsyncIterator(iterable, callback, rejectCallback) {
+function mapAsyncIterator(iterable, callback) {
   var iterator = (0, _iterall.getAsyncIterator)(iterable);
   var $return = void 0;
   var abruptClose = void 0;
@@ -33086,27 +33129,16 @@ function mapAsyncIterator(iterable, callback, rejectCallback) {
     return result.done ? result : asyncMapValue(result.value, callback).then(iteratorResult, abruptClose);
   }
 
-  var mapReject = void 0;
-  if (rejectCallback) {
-    // Capture rejectCallback to ensure it cannot be null.
-    var reject = rejectCallback;
-    mapReject = function mapReject(error) {
-      return asyncMapValue(error, reject).then(iteratorResult, abruptClose);
-    };
-  }
-
-  /* TODO: Flow doesn't support symbols as keys:
-     https://github.com/facebook/flow/issues/3258 */
   return _defineProperty({
     next: function next() {
-      return iterator.next().then(mapResult, mapReject);
+      return iterator.next().then(mapResult);
     },
     return: function _return() {
-      return $return ? $return.call(iterator).then(mapResult, mapReject) : Promise.resolve({ value: undefined, done: true });
+      return $return ? $return.call(iterator).then(mapResult) : Promise.resolve({ value: undefined, done: true });
     },
     throw: function _throw(error) {
       if (typeof iterator.throw === 'function') {
-        return iterator.throw(error).then(mapResult, mapReject);
+        return iterator.throw(error).then(mapResult);
       }
       return Promise.reject(error).catch(abruptClose);
     }
@@ -33135,10 +33167,6 @@ exports.createSourceEventStream = createSourceEventStream;
 
 var _iterall = require('iterall');
 
-var _GraphQLError = require('../error/GraphQLError');
-
-var _locatedError = require('../error/locatedError');
-
 var _execute = require('../execution/execute');
 
 var _schema = require('../type/schema');
@@ -33156,20 +33184,10 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 /**
  * Implements the "Subscribe" algorithm described in the GraphQL specification.
  *
- * Returns a Promise which resolves to either an AsyncIterator (if successful)
- * or an ExecutionResult (client error). The promise will be rejected if a
- * server error occurs.
+ * Returns an AsyncIterator
  *
- * If the client-provided arguments to this function do not result in a
- * compliant subscription, a GraphQL Response (ExecutionResult) with
- * descriptive errors and no data will be returned.
- *
- * If the the source stream could not be created due to faulty subscription
- * resolver logic or underlying systems, the promise will resolve to a single
- * ExecutionResult containing `errors` and no `data`.
- *
- * If the operation succeeded, the promise resolves to an AsyncIterator, which
- * yields a stream of ExecutionResults representing the response stream.
+ * If the arguments to this function do not result in a legal execution context,
+ * a GraphQLError will be thrown immediately explaining the invalid input.
  *
  * Accepts either an object with named arguments, or individual arguments.
  */
@@ -33179,33 +33197,20 @@ function subscribe(argsOrSchema, document, rootValue, contextValue, variableValu
   // Extract arguments from object args if provided.
   var args = arguments.length === 1 ? argsOrSchema : undefined;
   var schema = args ? args.schema : argsOrSchema;
-
   return args ? subscribeImpl(schema, args.document, args.rootValue, args.contextValue, args.variableValues, args.operationName, args.fieldResolver, args.subscribeFieldResolver) : subscribeImpl(schema, document, rootValue, contextValue, variableValues, operationName, fieldResolver, subscribeFieldResolver);
-}
-
-/**
- * This function checks if the error is a GraphQLError. If it is, report it as
- * an ExecutionResult, containing only errors and no data. Otherwise treat the
- * error as a system-class error and re-throw it.
- */
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
- */
-
-function reportGraphQLError(error) {
-  if (error instanceof _GraphQLError.GraphQLError) {
-    return { errors: [error] };
-  }
-  throw error;
-}
+} /**
+   * Copyright (c) 2017, Facebook, Inc.
+   * All rights reserved.
+   *
+   * This source code is licensed under the BSD-style license found in the
+   * LICENSE file in the root directory of this source tree. An additional grant
+   * of patent rights can be found in the PATENTS file in the same directory.
+   *
+   * 
+   */
 
 function subscribeImpl(schema, document, rootValue, contextValue, variableValues, operationName, fieldResolver, subscribeFieldResolver) {
-  var sourcePromise = createSourceEventStream(schema, document, rootValue, contextValue, variableValues, operationName, subscribeFieldResolver);
+  var subscription = createSourceEventStream(schema, document, rootValue, contextValue, variableValues, operationName, subscribeFieldResolver);
 
   // For each payload yielded from a subscription, map it over the normal
   // GraphQL `execute` function, with `payload` as the rootValue.
@@ -33213,29 +33218,19 @@ function subscribeImpl(schema, document, rootValue, contextValue, variableValues
   // the GraphQL specification. The `execute` function provides the
   // "ExecuteSubscriptionEvent" algorithm, as it is nearly identical to the
   // "ExecuteQuery" algorithm, for which `execute` is also used.
-  var mapSourceToResponse = function mapSourceToResponse(payload) {
+  return (0, _mapAsyncIterator2.default)(subscription, function (payload) {
     return (0, _execute.execute)(schema, document, payload, contextValue, variableValues, operationName, fieldResolver);
-  };
-
-  // Resolve the Source Stream, then map every source value to a
-  // ExecutionResult value as described above.
-  return sourcePromise.then(function (sourceStream) {
-    return (0, _mapAsyncIterator2.default)(sourceStream, mapSourceToResponse, reportGraphQLError);
-  }, reportGraphQLError);
+  });
 }
 
 /**
  * Implements the "CreateSourceEventStream" algorithm described in the
  * GraphQL specification, resolving the subscription source event stream.
  *
- * Returns a Promise<AsyncIterable>.
+ * Returns an AsyncIterable, may through a GraphQLError.
  *
- * If the client-provided invalid arguments, the source stream could not be
- * created, or the resolver did not return an AsyncIterable, this function will
- * will throw an error, which should be caught and handled by the caller.
- *
- * A Source Event Stream represents a sequence of events, each of which triggers
- * a GraphQL execution for that event.
+ * A Source Stream represents the sequence of events, each of which is
+ * expected to be used to trigger a GraphQL execution for that event.
  *
  * This may be useful when hosting the stateful subscription service in a
  * different process or machine than the stateless GraphQL execution engine,
@@ -33243,52 +33238,44 @@ function subscribeImpl(schema, document, rootValue, contextValue, variableValues
  * "Supporting Subscriptions at Scale" information in the GraphQL specification.
  */
 function createSourceEventStream(schema, document, rootValue, contextValue, variableValues, operationName, fieldResolver) {
-  // If arguments are missing or incorrectly typed, this is an internal
-  // developer mistake which should throw an early error.
+  // If arguments are missing or incorrect, throw an error.
   (0, _execute.assertValidExecutionArguments)(schema, document, variableValues);
 
-  return new Promise(function (resolve, reject) {
-    // If a valid context cannot be created due to incorrect arguments,
-    // this will throw an error.
-    var exeContext = (0, _execute.buildExecutionContext)(schema, document, rootValue, contextValue, variableValues, operationName, fieldResolver);
+  // If a valid context cannot be created due to incorrect arguments,
+  // this will throw an error.
+  var exeContext = (0, _execute.buildExecutionContext)(schema, document, rootValue, contextValue, variableValues, operationName, fieldResolver);
 
-    var type = (0, _execute.getOperationRootType)(schema, exeContext.operation);
-    var fields = (0, _execute.collectFields)(exeContext, type, exeContext.operation.selectionSet, Object.create(null), Object.create(null));
-    var responseNames = Object.keys(fields);
-    var responseName = responseNames[0];
-    var fieldNodes = fields[responseName];
-    var fieldNode = fieldNodes[0];
-    var fieldDef = (0, _execute.getFieldDef)(schema, type, fieldNode.name.value);
-    !fieldDef ? (0, _invariant2.default)(0, 'This subscription is not defined by the schema.') : void 0;
+  var type = (0, _execute.getOperationRootType)(schema, exeContext.operation);
+  var fields = (0, _execute.collectFields)(exeContext, type, exeContext.operation.selectionSet, Object.create(null), Object.create(null));
+  var responseNames = Object.keys(fields);
+  var responseName = responseNames[0];
+  var fieldNodes = fields[responseName];
+  var fieldNode = fieldNodes[0];
+  var fieldDef = (0, _execute.getFieldDef)(schema, type, fieldNode.name.value);
+  !fieldDef ? (0, _invariant2.default)(0, 'This subscription is not defined by the schema.') : void 0;
 
-    // Call the `subscribe()` resolver or the default resolver to produce an
-    // AsyncIterable yielding raw payloads.
-    var resolveFn = fieldDef.subscribe || exeContext.fieldResolver;
+  // Call the `subscribe()` resolver or the default resolver to produce an
+  // AsyncIterable yielding raw payloads.
+  var resolveFn = fieldDef.subscribe || exeContext.fieldResolver;
 
-    var path = (0, _execute.addPath)(undefined, responseName);
+  var info = (0, _execute.buildResolveInfo)(exeContext, fieldDef, fieldNodes, type, (0, _execute.addPath)(undefined, responseName));
 
-    var info = (0, _execute.buildResolveInfo)(exeContext, fieldDef, fieldNodes, type, path);
+  // resolveFieldValueOrError implements the "ResolveFieldEventStream"
+  // algorithm from GraphQL specification. It differs from
+  // "ResolveFieldValue" due to providing a different `resolveFn`.
+  var subscription = (0, _execute.resolveFieldValueOrError)(exeContext, fieldDef, fieldNodes, resolveFn, rootValue, info);
 
-    // resolveFieldValueOrError implements the "ResolveFieldEventStream"
-    // algorithm from GraphQL specification. It differs from
-    // "ResolveFieldValue" due to providing a different `resolveFn`.
-    Promise.resolve((0, _execute.resolveFieldValueOrError)(exeContext, fieldDef, fieldNodes, resolveFn, rootValue, info)).then(function (subscription) {
-      // Reject with a located GraphQLError if subscription source fails
-      // to resolve.
-      if (subscription instanceof Error) {
-        var error = (0, _locatedError.locatedError)(subscription, fieldNodes, (0, _execute.responsePathAsArray)(path));
-        reject(error);
-      }
+  if (subscription instanceof Error) {
+    throw subscription;
+  }
 
-      if (!(0, _iterall.isAsyncIterable)(subscription)) {
-        reject(new Error('Subscription must return Async Iterable. ' + 'Received: ' + String(subscription)));
-      }
+  if (!(0, _iterall.isAsyncIterable)(subscription)) {
+    throw new Error('Subscription must return Async Iterable. ' + 'Received: ' + String(subscription));
+  }
 
-      resolve(subscription);
-    }).catch(reject);
-  });
+  return subscription;
 }
-},{"../error/GraphQLError":227,"../error/locatedError":230,"../execution/execute":232,"../jsutils/invariant":238,"../type/schema":261,"./mapAsyncIterator":254,"iterall":311}],256:[function(require,module,exports){
+},{"../execution/execute":232,"../jsutils/invariant":238,"../type/schema":261,"./mapAsyncIterator":254,"iterall":311}],256:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -33335,14 +33322,15 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } } /**
-                                                                                                                                                           * Copyright (c) 2015-present, Facebook, Inc.
-                                                                                                                                                           *
-                                                                                                                                                           * This source code is licensed under the MIT license found in the
-                                                                                                                                                           * LICENSE file in the root directory of this source tree.
-                                                                                                                                                           *
-                                                                                                                                                           * 
-                                                                                                                                                           */
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 // Predicates & Assertions
 
@@ -34102,14 +34090,15 @@ var _assertValidName = require('../utilities/assertValidName');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } } /**
-                                                                                                                                                           * Copyright (c) 2015-present, Facebook, Inc.
-                                                                                                                                                           *
-                                                                                                                                                           * This source code is licensed under the MIT license found in the
-                                                                                                                                                           * LICENSE file in the root directory of this source tree.
-                                                                                                                                                           *
-                                                                                                                                                           * 
-                                                                                                                                                           */
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 var DirectiveLocation = exports.DirectiveLocation = {
   // Operations
@@ -34566,12 +34555,12 @@ var _directives = require('./directives');
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 var __Schema = exports.__Schema = new _definition.GraphQLObjectType({
@@ -35022,13 +35011,14 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 //
 // n.b. JavaScript's integers are safe between -(2^53 - 1) and 2^53 - 1 because
 // they are internally represented as IEEE 754 doubles.
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 var MAX_INT = 2147483647;
@@ -35086,18 +35076,11 @@ var GraphQLFloat = exports.GraphQLFloat = new _definition.GraphQLScalarType({
   }
 });
 
-function coerceString(value) {
-  if (Array.isArray(value)) {
-    throw new TypeError('String cannot represent an array value: [' + String(value) + ']');
-  }
-  return String(value);
-}
-
 var GraphQLString = exports.GraphQLString = new _definition.GraphQLScalarType({
   name: 'String',
   description: 'The `String` scalar type represents textual data, represented as UTF-8 ' + 'character sequences. The String type is most often used by GraphQL to ' + 'represent free-form human-readable text.',
-  serialize: coerceString,
-  parseValue: coerceString,
+  serialize: String,
+  parseValue: String,
   parseLiteral: function parseLiteral(ast) {
     return ast.kind === Kind.STRING ? ast.value : null;
   }
@@ -35150,14 +35133,15 @@ var _typeComparators = require('../utilities/typeComparators');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } } /**
-                                                                                                                                                           * Copyright (c) 2015-present, Facebook, Inc.
-                                                                                                                                                           *
-                                                                                                                                                           * This source code is licensed under the MIT license found in the
-                                                                                                                                                           * LICENSE file in the root directory of this source tree.
-                                                                                                                                                           *
-                                                                                                                                                           * 
-                                                                                                                                                           */
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 /**
  * Schema Definition
@@ -35424,14 +35408,15 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } } /**
-                                                                                                                                                           * Copyright (c) 2015-present, Facebook, Inc.
-                                                                                                                                                           *
-                                                                                                                                                           * This source code is licensed under the MIT license found in the
-                                                                                                                                                           * LICENSE file in the root directory of this source tree.
-                                                                                                                                                           *
-                                                                                                                                                           * 
-                                                                                                                                                           */
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 /**
  * TypeInfo is a utility class which, given a GraphQL schema, can keep track
@@ -35642,13 +35627,14 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.assertValidName = assertValidName;
 exports.formatWarning = formatWarning;
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 var NAME_RX = /^[_a-zA-Z][_a-zA-Z0-9]*$/;
@@ -35705,14 +35691,15 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                               * Copyright (c) 2015-present, Facebook, Inc.
-                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                               * This source code is licensed under the MIT license found in the
-                                                                                                                                                                                                                                                                               * LICENSE file in the root directory of this source tree.
-                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                               * 
-                                                                                                                                                                                                                                                                               */
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 exports.astFromValue = astFromValue;
 
@@ -35908,12 +35895,12 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function buildWrappedType(innerType, inputTypeNode) {
@@ -36127,16 +36114,26 @@ function buildASTSchema(ast) {
   }
 
   function typeDefNamed(typeName) {
-    if (!innerTypeMap[typeName]) {
-      if (!nodeMap[typeName]) {
-        throw new Error('Type "' + typeName + '" not found in document.');
-      }
-      innerTypeMap[typeName] = makeSchemaDef(nodeMap[typeName]);
+    if (innerTypeMap[typeName]) {
+      return innerTypeMap[typeName];
     }
-    return innerTypeMap[typeName];
+
+    if (!nodeMap[typeName]) {
+      throw new Error('Type "' + typeName + '" not found in document.');
+    }
+
+    var innerTypeDef = makeSchemaDef(nodeMap[typeName]);
+    if (!innerTypeDef) {
+      throw new Error('Nothing constructed for "' + typeName + '".');
+    }
+    innerTypeMap[typeName] = innerTypeDef;
+    return innerTypeDef;
   }
 
   function makeSchemaDef(def) {
+    if (!def) {
+      throw new Error('def must be defined');
+    }
     switch (def.kind) {
       case Kind.OBJECT_TYPE_DEFINITION:
         return makeTypeDef(def);
@@ -36205,8 +36202,9 @@ function buildASTSchema(ast) {
   }
 
   function makeInterfaceDef(def) {
+    var typeName = def.name.value;
     return new _definition.GraphQLInterfaceType({
-      name: def.name.value,
+      name: typeName,
       description: getDescription(def),
       fields: function fields() {
         return makeFieldDefMap(def);
@@ -36217,7 +36215,7 @@ function buildASTSchema(ast) {
   }
 
   function makeEnumDef(def) {
-    return new _definition.GraphQLEnumType({
+    var enumType = new _definition.GraphQLEnumType({
       name: def.name.value,
       description: getDescription(def),
       values: (0, _keyValMap2.default)(def.values, function (enumValue) {
@@ -36231,6 +36229,8 @@ function buildASTSchema(ast) {
       }),
       astNode: def
     });
+
+    return enumType;
   }
 
   function makeUnionDef(def) {
@@ -36632,14 +36632,15 @@ function buildClientSchema(introspection) {
     types: types,
     directives: directives
   });
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 function cannotExecuteClientSchema() {
   throw new Error('Client Schema cannot use Interface or Union types for execution.');
@@ -36670,14 +36671,15 @@ function concatAST(asts) {
     kind: 'Document',
     definitions: batchDefinitions
   };
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 },{}],268:[function(require,module,exports){
 'use strict';
 
@@ -36734,13 +36736,14 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * This algorithm copies the provided schema, applying extensions while
  * producing the copy. The original schema remains unaltered.
  */
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function extendSchema(schema, documentAST) {
@@ -37167,7 +37170,6 @@ function extendSchema(schema, documentAST) {
   function getDirective(directiveNode) {
     return new _directives.GraphQLDirective({
       name: directiveNode.name.value,
-      description: (0, _buildASTSchema.getDescription)(directiveNode),
       locations: directiveNode.locations.map(function (node) {
         return node.value;
       }),
@@ -37251,9 +37253,7 @@ exports.findArgChanges = findArgChanges;
 exports.findFieldsThatChangedType = findFieldsThatChangedType;
 exports.findFieldsThatChangedTypeOnInputObjectTypes = findFieldsThatChangedTypeOnInputObjectTypes;
 exports.findTypesRemovedFromUnions = findTypesRemovedFromUnions;
-exports.findTypesAddedToUnions = findTypesAddedToUnions;
 exports.findValuesRemovedFromEnums = findValuesRemovedFromEnums;
-exports.findValuesAddedToEnums = findValuesAddedToEnums;
 exports.findInterfacesRemovedFromObjectTypes = findInterfacesRemovedFromObjectTypes;
 
 var _definition = require('../type/definition');
@@ -37261,12 +37261,12 @@ var _definition = require('../type/definition');
 var _schema = require('../type/schema');
 
 /**
- * Copyright (c) 2016-present, Facebook, Inc.
+ *  Copyright (c) 2016, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 var BreakingChangeType = exports.BreakingChangeType = {
@@ -37284,9 +37284,7 @@ var BreakingChangeType = exports.BreakingChangeType = {
 };
 
 var DangerousChangeType = exports.DangerousChangeType = {
-  ARG_DEFAULT_VALUE_CHANGE: 'ARG_DEFAULT_VALUE_CHANGE',
-  VALUE_ADDED_TO_ENUM: 'VALUE_ADDED_TO_ENUM',
-  TYPE_ADDED_TO_UNION: 'TYPE_ADDED_TO_UNION'
+  ARG_DEFAULT_VALUE_CHANGE: 'ARG_DEFAULT_VALUE_CHANGE'
 };
 
 /**
@@ -37302,7 +37300,7 @@ function findBreakingChanges(oldSchema, newSchema) {
  * of potentially dangerous changes covered by the other functions down below.
  */
 function findDangerousChanges(oldSchema, newSchema) {
-  return [].concat(findArgChanges(oldSchema, newSchema).dangerousChanges, findValuesAddedToEnums(oldSchema, newSchema), findTypesAddedToUnions(oldSchema, newSchema));
+  return [].concat(findArgChanges(oldSchema, newSchema).dangerousChanges);
 }
 
 /**
@@ -37620,36 +37618,6 @@ function findTypesRemovedFromUnions(oldSchema, newSchema) {
 }
 
 /**
- * Given two schemas, returns an Array containing descriptions of any dangerous
- * changes in the newSchema related to adding types to a union type.
- */
-function findTypesAddedToUnions(oldSchema, newSchema) {
-  var oldTypeMap = oldSchema.getTypeMap();
-  var newTypeMap = newSchema.getTypeMap();
-
-  var typesAddedToUnion = [];
-  Object.keys(newTypeMap).forEach(function (typeName) {
-    var oldType = oldTypeMap[typeName];
-    var newType = newTypeMap[typeName];
-    if (!(oldType instanceof _definition.GraphQLUnionType) || !(newType instanceof _definition.GraphQLUnionType)) {
-      return;
-    }
-    var typeNamesInOldUnion = Object.create(null);
-    oldType.getTypes().forEach(function (type) {
-      typeNamesInOldUnion[type.name] = true;
-    });
-    newType.getTypes().forEach(function (type) {
-      if (!typeNamesInOldUnion[type.name]) {
-        typesAddedToUnion.push({
-          type: DangerousChangeType.TYPE_ADDED_TO_UNION,
-          description: type.name + ' was added to union type ' + typeName + '.'
-        });
-      }
-    });
-  });
-  return typesAddedToUnion;
-}
-/**
  * Given two schemas, returns an Array containing descriptions of any breaking
  * changes in the newSchema related to removing values from an enum type.
  */
@@ -37678,38 +37646,6 @@ function findValuesRemovedFromEnums(oldSchema, newSchema) {
     });
   });
   return valuesRemovedFromEnums;
-}
-
-/**
- * Given two schemas, returns an Array containing descriptions of any dangerous
- * changes in the newSchema related to adding values to an enum type.
- */
-function findValuesAddedToEnums(oldSchema, newSchema) {
-  var oldTypeMap = oldSchema.getTypeMap();
-  var newTypeMap = newSchema.getTypeMap();
-
-  var valuesAddedToEnums = [];
-  Object.keys(oldTypeMap).forEach(function (typeName) {
-    var oldType = oldTypeMap[typeName];
-    var newType = newTypeMap[typeName];
-    if (!(oldType instanceof _definition.GraphQLEnumType) || !(newType instanceof _definition.GraphQLEnumType)) {
-      return;
-    }
-
-    var valuesInOldEnum = Object.create(null);
-    oldType.getValues().forEach(function (value) {
-      valuesInOldEnum[value.name] = true;
-    });
-    newType.getValues().forEach(function (value) {
-      if (!valuesInOldEnum[value.name]) {
-        valuesAddedToEnums.push({
-          type: DangerousChangeType.VALUE_ADDED_TO_ENUM,
-          description: value.name + ' was added to enum type ' + typeName + '.'
-        });
-      }
-    });
-  });
-  return valuesAddedToEnums;
 }
 
 function findInterfacesRemovedFromObjectTypes(oldSchema, newSchema) {
@@ -37790,14 +37726,15 @@ function findDeprecatedUsages(schema, ast) {
   }));
 
   return errors;
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 },{"../error/GraphQLError":227,"../language/visitor":252,"../type/definition":256,"../type/schema":261,"./TypeInfo":262}],271:[function(require,module,exports){
 'use strict';
 
@@ -37832,14 +37769,15 @@ function getOperationAST(documentAST, operationName) {
     }
   }
   return operation;
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 },{"../language/kinds":246}],272:[function(require,module,exports){
 'use strict';
 
@@ -38041,12 +37979,6 @@ Object.defineProperty(exports, 'findBreakingChanges', {
     return _findBreakingChanges.findBreakingChanges;
   }
 });
-Object.defineProperty(exports, 'findDangerousChanges', {
-  enumerable: true,
-  get: function get() {
-    return _findBreakingChanges.findDangerousChanges;
-  }
-});
 
 var _findDeprecatedUsages = require('./findDeprecatedUsages');
 
@@ -38062,14 +37994,15 @@ Object.defineProperty(exports, 'findDeprecatedUsages', {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-var introspectionQuery = exports.introspectionQuery = '\n  query IntrospectionQuery {\n    __schema {\n      queryType { name }\n      mutationType { name }\n      subscriptionType { name }\n      types {\n        ...FullType\n      }\n      directives {\n        name\n        description\n        locations\n        args {\n          ...InputValue\n        }\n      }\n    }\n  }\n\n  fragment FullType on __Type {\n    kind\n    name\n    description\n    fields(includeDeprecated: true) {\n      name\n      description\n      args {\n        ...InputValue\n      }\n      type {\n        ...TypeRef\n      }\n      isDeprecated\n      deprecationReason\n    }\n    inputFields {\n      ...InputValue\n    }\n    interfaces {\n      ...TypeRef\n    }\n    enumValues(includeDeprecated: true) {\n      name\n      description\n      isDeprecated\n      deprecationReason\n    }\n    possibleTypes {\n      ...TypeRef\n    }\n  }\n\n  fragment InputValue on __InputValue {\n    name\n    description\n    type { ...TypeRef }\n    defaultValue\n  }\n\n  fragment TypeRef on __Type {\n    kind\n    name\n    ofType {\n      kind\n      name\n      ofType {\n        kind\n        name\n        ofType {\n          kind\n          name\n          ofType {\n            kind\n            name\n            ofType {\n              kind\n              name\n              ofType {\n                kind\n                name\n                ofType {\n                  kind\n                  name\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n'; /**
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             * Copyright (c) 2015-present, Facebook, Inc.
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             *
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             * This source code is licensed under the MIT license found in the
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             * LICENSE file in the root directory of this source tree.
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             *
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             * 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             */
+var introspectionQuery = exports.introspectionQuery = '\n  query IntrospectionQuery {\n    __schema {\n      queryType { name }\n      mutationType { name }\n      subscriptionType { name }\n      types {\n        ...FullType\n      }\n      directives {\n        name\n        description\n        locations\n        args {\n          ...InputValue\n        }\n      }\n    }\n  }\n\n  fragment FullType on __Type {\n    kind\n    name\n    description\n    fields(includeDeprecated: true) {\n      name\n      description\n      args {\n        ...InputValue\n      }\n      type {\n        ...TypeRef\n      }\n      isDeprecated\n      deprecationReason\n    }\n    inputFields {\n      ...InputValue\n    }\n    interfaces {\n      ...TypeRef\n    }\n    enumValues(includeDeprecated: true) {\n      name\n      description\n      isDeprecated\n      deprecationReason\n    }\n    possibleTypes {\n      ...TypeRef\n    }\n  }\n\n  fragment InputValue on __InputValue {\n    name\n    description\n    type { ...TypeRef }\n    defaultValue\n  }\n\n  fragment TypeRef on __Type {\n    kind\n    name\n    ofType {\n      kind\n      name\n      ofType {\n        kind\n        name\n        ofType {\n          kind\n          name\n          ofType {\n            kind\n            name\n            ofType {\n              kind\n              name\n              ofType {\n                kind\n                name\n                ofType {\n                  kind\n                  name\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n';
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 },{}],274:[function(require,module,exports){
 'use strict';
 
@@ -38077,14 +38010,15 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; /**
-                                                                                                                                                                                                                                                                               * Copyright (c) 2015-present, Facebook, Inc.
-                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                               * This source code is licensed under the MIT license found in the
-                                                                                                                                                                                                                                                                               * LICENSE file in the root directory of this source tree.
-                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                               * 
-                                                                                                                                                                                                                                                                               */
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 exports.isValidJSValue = isValidJSValue;
 
@@ -38284,14 +38218,15 @@ function isValidLiteralValue(type, valueNode) {
   }
 
   return [];
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 },{"../jsutils/invariant":238,"../jsutils/keyMap":241,"../language/kinds":246,"../language/printer":250,"../type/definition":256}],276:[function(require,module,exports){
 'use strict';
 
@@ -38327,12 +38262,12 @@ var _directives = require('../type/directives');
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function printSchema(schema) {
@@ -38594,6 +38529,7 @@ var _visitor = require('../language/visitor');
  * refers to.
  */
 function separateOperations(documentAST) {
+
   var operations = [];
   var fragments = Object.create(null);
   var positions = new Map();
@@ -38644,14 +38580,15 @@ function separateOperations(documentAST) {
   });
 
   return separatedDocumentASTs;
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 // Provides the empty string for anonymous operations.
 function opName(operation) {
@@ -38710,13 +38647,14 @@ function isEqualType(typeA, typeB) {
  * Provided a type and a super type, return true if the first type is either
  * equal or a subset of the second super type (covariant).
  */
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function isTypeSubTypeOf(schema, maybeSubType, superType) {
@@ -38842,13 +38780,14 @@ function typeFromASTImpl(schema, typeNode) {
 // This will export typeFromAST with the correct type, but currently exposes
 // ~26 errors: https://gist.github.com/4a29403a99a8186fcb15064d69c5f3ae
 // export var typeFromAST: typeof typeFromASTType = typeFromASTImpl;
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 var typeFromAST = exports.typeFromAST = typeFromASTImpl;
@@ -38906,13 +38845,14 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * | NullValue            | null          |
  *
  */
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function valueFromAST(valueNode, type, variables) {
@@ -39304,12 +39244,12 @@ var _printer = require('../../language/printer');
 var _isValidLiteralValue = require('../../utilities/isValidLiteralValue');
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function badValueMessage(argName, type, value, verboseErrors) {
@@ -39357,14 +39297,15 @@ var _isValidLiteralValue = require('../../utilities/isValidLiteralValue');
 
 function defaultForNonNullArgMessage(varName, type, guessType) {
   return 'Variable "$' + varName + '" of type "' + String(type) + '" is required and ' + 'will not use the default value. ' + ('Perhaps you meant to use type "' + String(guessType) + '".');
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 function badValueForDefaultArgMessage(varName, type, value, verboseErrors) {
   var message = verboseErrors ? '\n' + verboseErrors.join('\n') : '';
@@ -39443,13 +39384,14 @@ function undefinedFieldMessage(fieldName, type, suggestedTypeNames, suggestedFie
  * A GraphQL document is only valid if all fields selected are defined by the
  * parent type, or are an allowed meta field such as __typename.
  */
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function FieldsOnCorrectType(context) {
@@ -39545,14 +39487,15 @@ var _typeFromAST = require('../../utilities/typeFromAST');
 
 function inlineFragmentOnNonCompositeErrorMessage(type) {
   return 'Fragment cannot condition on non composite type "' + String(type) + '".';
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 function fragmentOnNonCompositeErrorMessage(fragName, type) {
   return 'Fragment "' + fragName + '" cannot condition on non composite ' + ('type "' + String(type) + '".');
@@ -39619,20 +39562,21 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function unknownArgMessage(argName, fieldName, typeName, suggestedArgs) {
-  var message = 'Unknown argument "' + argName + '" on field "' + fieldName + '" of ' + ('type "' + typeName + '".');
+function unknownArgMessage(argName, fieldName, type, suggestedArgs) {
+  var message = 'Unknown argument "' + argName + '" on field "' + fieldName + '" of ' + ('type "' + String(type) + '".');
   if (suggestedArgs.length) {
     message += ' Did you mean ' + (0, _quotedOrList2.default)(suggestedArgs) + '?';
   }
   return message;
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 function unknownDirectiveArgMessage(argName, directiveName, suggestedArgs) {
   var message = 'Unknown argument "' + argName + '" on directive "@' + directiveName + '".';
@@ -39710,14 +39654,15 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function unknownDirectiveMessage(directiveName) {
   return 'Unknown directive "' + directiveName + '".';
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 function misplacedDirectiveMessage(directiveName, location) {
   return 'Directive "' + directiveName + '" may not be used on ' + location + '.';
@@ -39805,12 +39750,12 @@ exports.KnownFragmentNames = KnownFragmentNames;
 var _error = require('../../error');
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function unknownFragmentMessage(fragName) {
@@ -39856,12 +39801,12 @@ var _quotedOrList2 = _interopRequireDefault(_quotedOrList);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function unknownTypeMessage(type, suggestedTypes) {
@@ -39928,13 +39873,14 @@ function anonOperationNotAloneMessage() {
  * A GraphQL document is only valid if when it contains an anonymous operation
  * (the query short-hand) that it contains only that one operation definition.
  */
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function LoneAnonymousOperation(context) {
@@ -39964,12 +39910,12 @@ exports.NoFragmentCycles = NoFragmentCycles;
 var _error = require('../../error');
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function cycleErrorMessage(fragName, spreadNames) {
@@ -40051,12 +39997,12 @@ exports.NoUndefinedVariables = NoUndefinedVariables;
 var _error = require('../../error');
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function undefinedVarMessage(varName, opName) {
@@ -40107,12 +40053,12 @@ exports.NoUnusedFragments = NoUnusedFragments;
 var _error = require('../../error');
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function unusedFragMessage(fragName) {
@@ -40170,12 +40116,12 @@ exports.NoUnusedVariables = NoUnusedVariables;
 var _error = require('../../error');
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function unusedVariableMessage(varName, opName) {
@@ -40249,14 +40195,15 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } } /**
-                                                                                                                                                           * Copyright (c) 2015-present, Facebook, Inc.
-                                                                                                                                                           *
-                                                                                                                                                           * This source code is licensed under the MIT license found in the
-                                                                                                                                                           * LICENSE file in the root directory of this source tree.
-                                                                                                                                                           *
-                                                                                                                                                           * 
-                                                                                                                                                           */
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 function fieldsConflictMessage(responseName, reason) {
   return 'Fields "' + responseName + '" conflict because ' + reasonMessage(reason) + '. Use different aliases on the fields to fetch both if this was ' + 'intentional.';
@@ -40793,18 +40740,18 @@ var _typeComparators = require('../../utilities/typeComparators');
 
 var _typeFromAST = require('../../utilities/typeFromAST');
 
-var _definition = require('../../type/definition');
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 function typeIncompatibleSpreadMessage(fragName, parentType, fragType) {
   return 'Fragment "' + fragName + '" cannot be spread here as objects of ' + ('type "' + String(parentType) + '" can never be of type "' + String(fragType) + '".');
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
 
 function typeIncompatibleAnonSpreadMessage(parentType, fragType) {
   return 'Fragment cannot be spread here as objects of ' + ('type "' + String(parentType) + '" can never be of type "' + String(fragType) + '".');
@@ -40822,7 +40769,7 @@ function PossibleFragmentSpreads(context) {
     InlineFragment: function InlineFragment(node) {
       var fragType = context.getType();
       var parentType = context.getParentType();
-      if ((0, _definition.isCompositeType)(fragType) && (0, _definition.isCompositeType)(parentType) && !(0, _typeComparators.doTypesOverlap)(context.getSchema(), fragType, parentType)) {
+      if (fragType && parentType && !(0, _typeComparators.doTypesOverlap)(context.getSchema(), fragType, parentType)) {
         context.reportError(new _error.GraphQLError(typeIncompatibleAnonSpreadMessage(parentType, fragType), [node]));
       }
     },
@@ -40841,7 +40788,7 @@ function getFragmentType(context, name) {
   var frag = context.getFragment(name);
   return frag && (0, _typeFromAST.typeFromAST)(context.getSchema(), frag.typeCondition);
 }
-},{"../../error":229,"../../type/definition":256,"../../utilities/typeComparators":278,"../../utilities/typeFromAST":279}],297:[function(require,module,exports){
+},{"../../error":229,"../../utilities/typeComparators":278,"../../utilities/typeFromAST":279}],297:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -40862,12 +40809,12 @@ var _definition = require('../../type/definition');
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function missingFieldArgMessage(fieldName, argName, type) {
@@ -40945,14 +40892,15 @@ var _definition = require('../../type/definition');
 
 function noSubselectionAllowedMessage(fieldName, type) {
   return 'Field "' + fieldName + '" must not have a selection since ' + ('type "' + String(type) + '" has no subfields.');
-} /**
-   * Copyright (c) 2015-present, Facebook, Inc.
-   *
-   * This source code is licensed under the MIT license found in the
-   * LICENSE file in the root directory of this source tree.
-   *
-   * 
-   */
+}
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 function requiredSubselectionMessage(fieldName, type) {
   return 'Field "' + fieldName + '" of type "' + String(type) + '" must have a ' + ('selection of subfields. Did you mean "' + fieldName + ' { ... }"?');
@@ -40992,12 +40940,12 @@ exports.SingleFieldSubscriptions = SingleFieldSubscriptions;
 var _error = require('../../error');
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function singleFieldOnlyMessage(name) {
@@ -41032,12 +40980,12 @@ exports.UniqueArgumentNames = UniqueArgumentNames;
 var _error = require('../../error');
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function duplicateArgMessage(argName) {
@@ -41082,12 +41030,12 @@ exports.UniqueDirectivesPerLocation = UniqueDirectivesPerLocation;
 var _error = require('../../error');
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function duplicateDirectiveMessage(directiveName) {
@@ -41132,12 +41080,12 @@ exports.UniqueFragmentNames = UniqueFragmentNames;
 var _error = require('../../error');
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function duplicateFragmentNameMessage(fragName) {
@@ -41178,12 +41126,12 @@ exports.UniqueInputFieldNames = UniqueInputFieldNames;
 var _error = require('../../error');
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function duplicateInputFieldMessage(fieldName) {
@@ -41233,12 +41181,12 @@ exports.UniqueOperationNames = UniqueOperationNames;
 var _error = require('../../error');
 
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function duplicateOperationNameMessage(operationName) {
@@ -41290,13 +41238,14 @@ function duplicateVariableMessage(variableName) {
  *
  * A GraphQL operation is only valid if all its variables are uniquely named.
  */
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function UniqueVariableNames(context) {
@@ -41342,13 +41291,14 @@ function nonInputTypeOnVarMessage(variableName, typeName) {
  * A GraphQL operation is only valid if all the variables it defines are of
  * input types (scalar, enum, or input object).
  */
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function VariablesAreInputTypes(context) {
@@ -41388,13 +41338,14 @@ function badVarPosMessage(varName, varType, expectedType) {
 /**
  * Variables passed to field arguments conform to type
  */
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 function VariablesInAllowedPosition(context) {
@@ -41541,13 +41492,14 @@ var _UniqueInputFieldNames = require('./rules/UniqueInputFieldNames');
 
 
 // Spec Section: "Subscriptions with Single Root Field"
+
 /**
- * Copyright (c) 2015-present, Facebook, Inc.
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
  */
 
 // Spec Section: "Operation Name Uniqueness"
@@ -41621,14 +41573,15 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } } /**
-                                                                                                                                                           * Copyright (c) 2015-present, Facebook, Inc.
-                                                                                                                                                           *
-                                                                                                                                                           * This source code is licensed under the MIT license found in the
-                                                                                                                                                           * LICENSE file in the root directory of this source tree.
-                                                                                                                                                           *
-                                                                                                                                                           * 
-                                                                                                                                                           */
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+/**
+ *  Copyright (c) 2015, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ */
 
 /**
  * Implements the "Validation" section of the spec.
